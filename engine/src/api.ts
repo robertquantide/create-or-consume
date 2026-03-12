@@ -24,18 +24,90 @@ import { getAllGraceSessions } from './grace.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Allowed CORS origins — localhost dashboard + any Chrome extension
+const ALLOWED_ORIGINS = ['http://localhost:9876', 'http://127.0.0.1:9876'];
+
+function isAllowedOrigin(origin: string): boolean {
+  if (origin.startsWith('chrome-extension://')) return true;
+  return ALLOWED_ORIGINS.includes(origin);
+}
+
+// --- Simple in-memory rate limiter ---
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
+const RATE_LIMIT_MAX = 120; // 120 requests per minute per IP
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return true;
+  }
+  entry.count += 1;
+  if (entry.count > RATE_LIMIT_MAX) return false;
+  return true;
+}
+
+// --- Preset validation ---
+function validatePresets(data: any): boolean {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+  // apps section
+  if (data.apps !== undefined) {
+    if (typeof data.apps !== 'object' || Array.isArray(data.apps)) return false;
+    const apps = data.apps;
+    if (apps.create !== undefined && !Array.isArray(apps.create)) return false;
+    if (apps.consume !== undefined && !Array.isArray(apps.consume)) return false;
+    for (const arr of [apps.create, apps.consume]) {
+      if (arr && !arr.every((v: any) => typeof v === 'string')) return false;
+    }
+  }
+  // domains section
+  if (data.domains !== undefined) {
+    if (typeof data.domains !== 'object' || Array.isArray(data.domains)) return false;
+    const domains = data.domains;
+    if (domains.create !== undefined && !Array.isArray(domains.create)) return false;
+    if (domains.consume !== undefined && !Array.isArray(domains.consume)) return false;
+    for (const arr of [domains.create, domains.consume]) {
+      if (arr && !arr.every((v: any) => typeof v === 'string')) return false;
+    }
+    if (domains.mixed !== undefined) {
+      if (typeof domains.mixed !== 'object' || Array.isArray(domains.mixed)) return false;
+      for (const val of Object.values(domains.mixed)) {
+        if (typeof val !== 'object' || val === null) return false;
+        const v = val as any;
+        if (typeof v.graceMinutes !== 'number') return false;
+      }
+    }
+  }
+  return true;
+}
+
 export function createAPI(): express.Application {
   const app = express();
 
-  app.use(express.json());
+  // Body size limit — 100KB max
+  app.use(express.json({ limit: '100kb' }));
 
-  // CORS for Chrome extension
+  // CORS — restrict to localhost dashboard and Chrome extensions only
   app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    const origin = req.headers.origin || '';
+    if (origin && isAllowedOrigin(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+    }
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type');
     if (req.method === 'OPTIONS') {
       return res.sendStatus(200);
+    }
+    next();
+  });
+
+  // Rate limiting middleware
+  app.use((req, res, next) => {
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    if (!checkRateLimit(ip)) {
+      return res.status(429).json({ error: 'Too many requests' });
     }
     next();
   });
@@ -136,34 +208,41 @@ export function createAPI(): express.Application {
     res.json({ ok: true, type: body.type, name: body.name, classification: body.classification });
   });
 
-  // POST /api/track — Chrome extension posts active tab info
+  // POST /api/track — Chrome extension posts active tab domain
   app.post('/api/track', (req, res) => {
     const body = req.body as TrackRequest;
 
-    if (!body.domain && !body.url) {
-      return res.status(400).json({ error: 'Required: domain or url' });
-    }
+    // Only accept domain; ignore full URL and title to protect privacy
+    let domain: string | null = null;
 
-    const domain = body.domain || (() => {
+    if (body.domain) {
+      domain = body.domain;
+    } else if (body.url) {
       try {
-        return new URL(body.url).hostname.replace(/^www\./, '');
+        domain = new URL(body.url).hostname.replace(/^www\./, '');
       } catch {
-        return null;
+        domain = null;
       }
-    })();
+    }
 
     if (!domain) {
-      return res.status(400).json({ error: 'Could not extract domain' });
+      return res.status(400).json({ error: 'Required: domain' });
     }
 
-    // Update extension data for the tracker
-    setExtensionData(domain, body.title || '');
+    // Sanitize domain — only allow valid hostname characters
+    const domainClean = domain.replace(/[^a-zA-Z0-9.\-]/g, '').toLowerCase();
+    if (!domainClean) {
+      return res.status(400).json({ error: 'Invalid domain' });
+    }
+
+    // Update extension data — do NOT store title for browser tabs (privacy)
+    setExtensionData(domainClean, '');
 
     // Classify this domain immediately for the extension badge
-    const result = classify('Browser', body.title, domain);
+    const result = classify('Browser', '', domainClean);
 
     res.json({
-      domain,
+      domain: domainClean,
       classification: result.classification,
       is_grace_period: result.is_grace_period,
       grace_remaining_seconds: result.grace_remaining_seconds,
@@ -175,17 +254,31 @@ export function createAPI(): express.Application {
     res.json(getPresets());
   });
 
-  // PUT /api/presets — update presets
+  // PUT /api/presets — update presets (validated)
   app.put('/api/presets', (req, res) => {
+    if (!validatePresets(req.body)) {
+      return res.status(400).json({
+        error: 'Invalid preset structure. Expected { apps?: { create?, consume? }, domains?: { create?, consume?, mixed? } }',
+      });
+    }
     const { apps, domains } = req.body;
     updatePresets(apps, domains);
     res.json({ ok: true, presets: getPresets() });
   });
 
-  // GET /api/state — current tracking state (for debugging)
+  // GET /api/state — current tracking state (filtered — no window titles)
   app.get('/api/state', (req, res) => {
+    const tracking = getTrackingState();
+    // Strip window_title from response — only return safe fields
+    const safeTracking = {
+      current_app: tracking.current_app,
+      current_domain: tracking.current_domain,
+      current_classification: tracking.current_classification,
+      session_start: tracking.session_start,
+      is_grace_period: tracking.is_grace_period,
+    };
     res.json({
-      tracking: getTrackingState(),
+      tracking: safeTracking,
       grace_sessions: getAllGraceSessions(),
     });
   });

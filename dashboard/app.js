@@ -95,7 +95,9 @@ function renderTimeline(sessions) {
     const end = session.end_time || Date.now();
     const duration = end - start;
     const widthPct = Math.max(0.5, (duration / totalRange) * 100);
-    const cls = session.classification.toLowerCase();
+    const knownClasses = ['create', 'consume', 'mixed', 'unknown'];
+    const rawCls = (session.classification || '').toLowerCase();
+    const cls = knownClasses.includes(rawCls) ? rawCls : 'unknown';
 
     const seg = document.createElement('div');
     seg.className = `timeline-segment ${cls}`;
@@ -128,17 +130,21 @@ function renderApps(apps) {
   const maxTime = Math.max(...apps.map(a => a.total_seconds));
 
   for (const app of apps) {
-    const cls = app.classification.toLowerCase();
+    // Sanitize classification to only allow known safe values for class names
+    const knownClasses = ['create', 'consume', 'mixed', 'unknown'];
+    const rawCls = (app.classification || '').toLowerCase();
+    const cls = knownClasses.includes(rawCls) ? rawCls : 'unknown';
     const barWidth = maxTime > 0 ? (app.total_seconds / maxTime) * 100 : 0;
 
     const li = document.createElement('li');
     li.className = 'app-item';
+    // Use escapeHTML on all user-controlled string data to prevent XSS
     li.innerHTML = `
-      <span class="app-badge ${cls}">${app.classification}</span>
+      <span class="app-badge ${cls}">${escapeHTML(app.classification)}</span>
       <span class="app-name">${escapeHTML(app.app_name)}</span>
       <span class="app-time">${formatTime(app.total_seconds)}</span>
       <div class="app-bar-container">
-        <div class="app-bar ${cls}" style="width: ${barWidth}%"></div>
+        <div class="app-bar ${cls}" style="width: ${barWidth.toFixed(2)}%"></div>
       </div>
     `;
     list.appendChild(li);

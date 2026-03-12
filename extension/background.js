@@ -37,10 +37,9 @@ async function trackTab(tab) {
     const response = await fetch(`${API_BASE}/api/track`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      // Send domain only — do NOT send title or full URL (privacy)
       body: JSON.stringify({
         domain,
-        title: tab.title || '',
-        url: tab.url,
       }),
     });
 

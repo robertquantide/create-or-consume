@@ -22,13 +22,23 @@ function main(): void {
   // Resolve DB path relative to engine root
   const dbPath = path.resolve(__dirname, '..', CONFIG.DB_PATH);
 
-  // Initialize database
+  // Initialize database — exit gracefully on failure (#23)
   console.log(`[DB] Initializing at ${dbPath}`);
-  initDB(dbPath);
+  try {
+    initDB(dbPath);
+  } catch (err) {
+    console.error('[DB] Failed to initialize database:', err instanceof Error ? err.message : err);
+    process.exit(1);
+  }
 
   // Load classification presets
   console.log('[Classifier] Loading presets...');
-  loadPresets();
+  try {
+    loadPresets();
+  } catch (err) {
+    console.error('[Classifier] Failed to load presets:', err instanceof Error ? err.message : err);
+    process.exit(1);
+  }
 
   // Start the tracking loop
   startTracking();
@@ -36,10 +46,10 @@ function main(): void {
   // Grace period cleanup every 5 minutes
   const cleanupInterval = setInterval(cleanupGraceSessions, 5 * 60 * 1000);
 
-  // Start HTTP server
+  // Start HTTP server — bind to 127.0.0.1 only (#3)
   const app = createAPI();
-  const server = app.listen(CONFIG.API_PORT, () => {
-    console.log(`[API] Server running at http://localhost:${CONFIG.API_PORT}`);
+  const server = app.listen(CONFIG.API_PORT, '127.0.0.1', () => {
+    console.log(`[API] Server running at http://127.0.0.1:${CONFIG.API_PORT}`);
     console.log(`[API] Dashboard: http://localhost:${CONFIG.API_PORT}/`);
     console.log('');
     console.log('[Ready] Tracking active windows...');
