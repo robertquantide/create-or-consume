@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "description": "Track whether you're creating or consuming. The first screen time tracker that measures what you BUILD, not what you scroll.",
   "permissions": [
+    "tabs",
     "activeTab",
     "alarms",
     "storage"
