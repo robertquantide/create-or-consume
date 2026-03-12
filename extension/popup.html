@@ -7,40 +7,53 @@
   <title>Create or Consume</title>
 </head>
 <body>
-  <div class="popup">
+
+  <!-- Main popup view -->
+  <div class="popup" id="popup-view">
+
+    <!-- Header -->
     <header class="header">
-      <h1>CREATE <span class="dim">or</span> CONSUME</h1>
+      <span class="header-title">CREATE <span class="dim">or</span> CONSUME</span>
+      <button class="gear-btn" id="gear-btn" title="Settings" aria-label="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
     </header>
 
-    <section class="today">
+    <!-- Hero stat -->
+    <section class="hero-card card">
       <div class="percentage" id="percentage">--%</div>
-      <div class="label">CREATE today</div>
-      <div class="progress-bar">
+      <div class="pct-label">CREATE today</div>
+
+      <!-- Progress bar -->
+      <div class="progress-track">
         <div class="progress-fill" id="progress-fill"></div>
       </div>
+
+      <!-- Time labels -->
       <div class="time-row">
-        <span class="time create" id="create-time">0h 0m</span>
-        <span class="time consume" id="consume-time">0h 0m</span>
-      </div>
-      <div class="time-row">
-        <span class="time-label">CREATE</span>
-        <span class="time-label">CONSUME</span>
+        <span class="time-chip create" id="create-time">0m CREATE</span>
+        <span class="time-sep">·</span>
+        <span class="time-chip consume" id="consume-time">0m CONSUME</span>
       </div>
     </section>
 
-    <section class="current" id="current-section">
-      <div class="current-header">
-        <span class="current-label">Current:</span>
-        <span class="current-domain" id="current-domain">--</span>
+    <!-- Current activity -->
+    <section class="activity-card card" id="current-section">
+      <div class="activity-row">
+        <span class="activity-domain" id="current-domain">--</span>
+        <span class="class-badge" id="class-badge">
+          <span class="badge-dot" id="status-dot"></span>
+          <span id="status-text">--</span>
+        </span>
       </div>
-      <div class="current-status">
-        <span class="dot" id="status-dot"></span>
-        <span id="status-text">--</span>
-        <span class="grace-badge" id="grace-badge" style="display: none;">GRACE</span>
-      </div>
+      <span class="grace-badge" id="grace-badge" style="display: none;">GRACE</span>
     </section>
 
-    <section class="actions">
+    <!-- Override dropdown -->
+    <section class="override-section" id="override-section" style="display: none;">
       <select id="override-select" class="override-select">
         <option value="">Override classification...</option>
         <option value="CREATE">Mark as CREATE</option>
@@ -49,22 +62,68 @@
       </select>
     </section>
 
+    <!-- Dashboard button -->
     <footer class="footer">
-      <a href="http://localhost:9876" target="_blank" class="dashboard-link">Open Dashboard</a>
+      <a href="http://localhost:9876" target="_blank" class="dashboard-btn" id="dashboard-link">
+        <span>Open Dashboard</span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <polyline points="15 3 21 3 21 9"/>
+          <line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+      </a>
     </footer>
+
   </div>
 
-  <div class="error" id="error" style="display: none;">
-    <p>Engine not running</p>
+  <!-- Settings panel (toggled by gear icon) -->
+  <div class="settings-panel" id="settings-panel">
+    <header class="header">
+      <span class="header-title">Settings</span>
+      <button class="gear-btn" id="settings-close-btn" title="Close" aria-label="Close settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/>
+          <line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </header>
+
+    <div class="settings-body">
+      <div class="settings-section">
+        <div class="settings-label">Auth Token</div>
+
+        <!-- Saved state: green dot + "Connected" -->
+        <div class="connected-row" id="connected-row" style="display: none;">
+          <span class="connected-dot"></span>
+          <span class="connected-text">Connected</span>
+          <button class="change-btn" id="change-token-btn">Change</button>
+        </div>
+
+        <!-- Input state -->
+        <div class="token-input-row" id="token-input-row">
+          <input
+            type="password"
+            id="auth-token-input"
+            class="token-input"
+            placeholder="Paste auth token..."
+          />
+          <button class="save-btn" id="save-token-btn">Save</button>
+        </div>
+
+        <div class="settings-hint">Token found in engine startup logs or<br><code>~/.config/create-or-consume/auth.token</code></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error state -->
+  <div class="error-view" id="error" style="display: none;">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="12"/>
+      <line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <p class="error-title">Engine not running</p>
     <p class="error-hint">Start the engine on localhost:9876</p>
-  </div>
-
-  <!-- Auth token setup section — shown when no token is stored -->
-  <div id="auth-section" style="display: none; padding: 16px;">
-    <p style="margin: 0 0 8px; font-size: 13px; color: #ccc;">Paste your auth token to connect:</p>
-    <input type="text" id="auth-token-input" placeholder="Auth token from engine startup..." style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 12px; background: #1a1a1a; border: 1px solid #444; color: #eee; border-radius: 4px; margin-bottom: 8px;" />
-    <button id="save-token-btn" style="width: 100%; padding: 6px; background: #10B981; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">Save Token</button>
-    <p style="margin: 8px 0 0; font-size: 11px; color: #666;">Find the token in engine startup logs or ~/.config/create-or-consume/auth.token</p>
   </div>
 
   <script src="popup.js"></script>
