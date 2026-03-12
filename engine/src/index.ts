@@ -6,6 +6,7 @@ import { startTracking, stopTracking } from './tracker.js';
 import { createAPI } from './api.js';
 import { CONFIG } from './types.js';
 import { cleanupGraceSessions } from './grace.js';
+import { initAuthToken } from './auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -18,6 +19,9 @@ function main(): void {
   console.log('  ║  not what you scroll.               ║');
   console.log('  ╚═══════════════════════════════════╝');
   console.log('');
+
+  // Initialize auth token (generates one on first run, loads from disk on subsequent runs)
+  initAuthToken();
 
   // Resolve DB path relative to engine root
   const dbPath = path.resolve(__dirname, '..', CONFIG.DB_PATH);

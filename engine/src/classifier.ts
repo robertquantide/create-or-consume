@@ -39,20 +39,24 @@ export function getPresets(): { apps: AppPresets; domains: DomainPresets } {
   return { apps: appPresets, domains: domainPresets };
 }
 
+/**
+ * Atomically write a JSON file: write to .tmp first, then rename (#6)
+ */
+function atomicWriteJSON(filePath: string, data: object): void {
+  const tmpPath = filePath + '.tmp';
+  const json = JSON.stringify(data, null, 2);
+  fs.writeFileSync(tmpPath, json, 'utf-8');
+  fs.renameSync(tmpPath, filePath);
+}
+
 export function updatePresets(apps?: AppPresets, domains?: DomainPresets): void {
   if (apps) {
     appPresets = apps;
-    fs.writeFileSync(
-      path.join(PRESETS_DIR, 'apps.json'),
-      JSON.stringify(apps, null, 2)
-    );
+    atomicWriteJSON(path.join(PRESETS_DIR, 'apps.json'), apps);
   }
   if (domains) {
     domainPresets = domains;
-    fs.writeFileSync(
-      path.join(PRESETS_DIR, 'domains.json'),
-      JSON.stringify(domains, null, 2)
-    );
+    atomicWriteJSON(path.join(PRESETS_DIR, 'domains.json'), domains);
   }
 }
 

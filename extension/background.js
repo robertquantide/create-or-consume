@@ -2,7 +2,9 @@
 // Tracks active tab and reports to local engine
 
 const API_BASE = 'http://localhost:9876';
-const POLL_INTERVAL_MS = 5000;
+// Chrome MV3 enforces a minimum alarm interval of 1 minute.
+// We respect this — tracking granularity is 1 minute.
+const ALARM_PERIOD_MINUTES = 1;
 
 let lastDomain = null;
 let lastClassification = null;
@@ -25,8 +27,8 @@ function extractDomain(url) {
 async function trackTab(tab) {
   if (!tab || !tab.url) return;
 
-  // Skip chrome:// and extension pages
-  if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+  // Only track http:// and https:// URLs — skip file://, data://, about://, chrome://, blob://, etc.
+  if (!tab.url.startsWith('http://') && !tab.url.startsWith('https://')) {
     return;
   }
 
@@ -101,8 +103,8 @@ async function pollActiveTab() {
   }
 }
 
-// Set up alarm for periodic polling
-chrome.alarms.create('poll-tab', { periodInMinutes: POLL_INTERVAL_MS / 60000 });
+// Set up alarm for periodic polling (minimum 1 minute per Chrome MV3)
+chrome.alarms.create('poll-tab', { periodInMinutes: ALARM_PERIOD_MINUTES });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'poll-tab') {
@@ -141,5 +143,6 @@ chrome.runtime.onStartup.addListener(() => {
   pollActiveTab();
 });
 
-// Also set up a secondary setInterval as backup (alarms have minimum 1 min)
-setInterval(pollActiveTab, POLL_INTERVAL_MS);
+// NOTE: Chrome enforces a minimum alarm interval of 1 minute for MV3 service workers.
+// setInterval is NOT used here because it does not persist across service worker restarts.
+// Tracking granularity is therefore 1 minute minimum — this is a Chrome MV3 limitation.

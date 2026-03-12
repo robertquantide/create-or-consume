@@ -105,6 +105,7 @@ function renderTimeline(sessions) {
 
     const tooltip = document.createElement('div');
     tooltip.className = 'tooltip';
+    // Use textContent — never innerHTML with API data
     tooltip.textContent = `${session.app_name}${session.domain ? ' (' + session.domain + ')' : ''} — ${formatTime(session.duration_seconds || 0)}`;
     seg.appendChild(tooltip);
 
@@ -172,11 +173,11 @@ function renderWeekly(days) {
     col.className = 'weekly-day';
     col.innerHTML = `
       <div class="weekly-bar-container">
-        <div class="weekly-bar consume" style="height: ${consumeHeight}%"></div>
-        <div class="weekly-bar create" style="height: ${createHeight}%"></div>
+        <div class="weekly-bar consume" style="height: ${consumeHeight.toFixed(2)}%"></div>
+        <div class="weekly-bar create" style="height: ${createHeight.toFixed(2)}%"></div>
       </div>
-      <span class="weekly-label">${getDayName(day.date)}</span>
-      <span class="weekly-pct">${createPct}%</span>
+      <span class="weekly-label">${escapeHTML(getDayName(day.date))}</span>
+      <span class="weekly-pct">${escapeHTML(String(createPct))}%</span>
     `;
     chart.appendChild(col);
   }

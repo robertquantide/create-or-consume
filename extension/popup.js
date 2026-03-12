@@ -34,17 +34,17 @@ async function getCurrentTabInfo() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab || !tab.url) return null;
 
+    // Only track http:// and https:// URLs
+    if (!tab.url.startsWith('http://') && !tab.url.startsWith('https://')) return null;
+
     const url = new URL(tab.url);
     const domain = url.hostname.replace(/^www\./, '');
 
     const response = await fetch(`${API_BASE}/api/track`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        domain,
-        title: tab.title || '',
-        url: tab.url,
-      }),
+      // Send domain only — do NOT send title or full URL (privacy)
+      body: JSON.stringify({ domain }),
     });
 
     if (!response.ok) throw new Error('Engine error');

@@ -2,12 +2,12 @@
 export type Classification = 'CREATE' | 'CONSUME' | 'MIXED' | 'UNKNOWN';
 
 // Database session record
+// window_title is intentionally excluded to protect privacy (#8)
 export interface Session {
   id?: number;
   start_time: number;
   end_time: number | null;
   app_name: string;
-  window_title: string | null;
   domain: string | null;
   classification: Classification;
   duration_seconds: number | null;

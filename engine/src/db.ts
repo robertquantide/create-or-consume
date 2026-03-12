@@ -30,7 +30,6 @@ export function initDB(dbPath: string): Database {
       start_time INTEGER NOT NULL,
       end_time INTEGER,
       app_name TEXT NOT NULL,
-      window_title TEXT,
       domain TEXT,
       classification TEXT NOT NULL,
       duration_seconds INTEGER,
@@ -78,15 +77,15 @@ export function getDB(): Database {
 // --- Session operations ---
 
 export function insertSession(session: Omit<Session, 'id'>): number {
+  // window_title is intentionally omitted — store only app_name and domain (#8)
   const stmt = getDB().prepare(`
-    INSERT INTO sessions (start_time, end_time, app_name, window_title, domain, classification, duration_seconds, is_grace_period)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO sessions (start_time, end_time, app_name, domain, classification, duration_seconds, is_grace_period)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
   const result = stmt.run(
     session.start_time,
     session.end_time,
     session.app_name,
-    session.window_title,
     session.domain,
     session.classification,
     session.duration_seconds,

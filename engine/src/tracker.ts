@@ -139,13 +139,12 @@ export async function poll(): Promise<void> {
       });
     }
 
-    // Start new session
+    // Start new session — window_title not stored (privacy, #8)
     state.session_start = now;
     currentSessionId = insertSession({
       start_time: now,
       end_time: null,
       app_name: windowInfo.app_name,
-      window_title: windowInfo.window_title,
       domain: domain,
       classification: result.classification,
       duration_seconds: 0,
