@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import type {
   TodayResponse,
@@ -21,7 +22,7 @@ import {
 import { getPresets, updatePresets, classify } from './classifier.js';
 import { setExtensionData, getTrackingState } from './tracker.js';
 import { getAllGraceSessions } from './grace.js';
-import { validateToken } from './auth.js';
+import { validateToken, getAuthToken } from './auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -52,6 +53,16 @@ function checkRateLimit(ip: string, isWrite: boolean): boolean {
   if (entry.count > limit) return false;
   return true;
 }
+
+// Clean up stale rate limit entries every 5 minutes (#E)
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitMap) {
+    if (now > entry.resetAt) {
+      rateLimitMap.delete(key);
+    }
+  }
+}, 300_000);
 
 // --- Preset validation (#6) ---
 function validatePresets(data: any): boolean {
@@ -136,9 +147,8 @@ export function createAPI(): express.Application {
     next();
   });
 
-  // Serve dashboard
+  // Serve dashboard — inject auth token at serve time so the dashboard JS can use it
   const dashboardPath = path.resolve(__dirname, '../../dashboard');
-  app.use(express.static(dashboardPath));
 
   // --- API Routes ---
 
@@ -329,10 +339,25 @@ export function createAPI(): express.Application {
     });
   });
 
-  // Serve dashboard for root
+  // Serve dashboard index with token injected so dashboard JS can authenticate (#A)
   app.get('/', (req, res) => {
-    res.sendFile(path.join(dashboardPath, 'index.html'));
+    try {
+      const html = fs.readFileSync(path.join(dashboardPath, 'index.html'), 'utf-8');
+      const authToken = getAuthToken();
+      // Inject token as a global variable — dashboard reads window.__COC_TOKEN__
+      const injected = html.replace(
+        '</head>',
+        `<script>window.__COC_TOKEN__ = ${JSON.stringify(authToken)};</script>\n</head>`
+      );
+      res.type('html').send(injected);
+    } catch (err) {
+      console.error('[API] Failed to serve dashboard:', err);
+      res.status(500).send('Dashboard unavailable');
+    }
   });
+
+  // Serve static assets (app.js, style.css, etc.) — no token needed for these
+  app.use(express.static(dashboardPath));
 
   // Global error handler — no stack trace leaks (#15)
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

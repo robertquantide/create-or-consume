@@ -2,8 +2,24 @@
 
 // Shared config — single source of truth for API base (#17)
 // Note: background.js also defines this constant; both must stay in sync.
-// Future: consider chrome.storage for shared config.
 const API_BASE = 'http://localhost:9876';
+
+/**
+ * Get auth token from chrome.storage (#A — extension auth)
+ */
+async function getAuthToken() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get('authToken', (result) => resolve(result.authToken || ''));
+  });
+}
+
+/**
+ * Get Authorization headers with stored token
+ */
+async function getAuthHeaders() {
+  const token = await getAuthToken();
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
 
 /**
  * Format seconds to "Xh Ym" string
@@ -21,7 +37,8 @@ function formatTime(seconds) {
  */
 async function loadToday() {
   try {
-    const response = await fetch(`${API_BASE}/api/today`);
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_BASE}/api/today`, { headers });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.json();
   } catch (err) {
@@ -49,7 +66,8 @@ async function getCurrentTabInfo() {
     }
 
     // Only read state — do NOT post to /api/track (background handles it, #19)
-    const response = await fetch(`${API_BASE}/api/state`);
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${API_BASE}/api/state`, { headers });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const state = await response.json();
 
@@ -76,9 +94,10 @@ async function getCurrentTabInfo() {
  */
 async function overrideDomain(domain, classification) {
   try {
+    const authHeaders = await getAuthHeaders();
     const response = await fetch(`${API_BASE}/api/classify`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
       body: JSON.stringify({
         type: 'domain',
         name: domain,
@@ -170,4 +189,28 @@ async function updateUI() {
 }
 
 // Initialize popup
-document.addEventListener('DOMContentLoaded', updateUI);
+document.addEventListener('DOMContentLoaded', () => {
+  // Check for stored auth token; show setup section if missing
+  chrome.storage.local.get('authToken', (result) => {
+    if (!result.authToken) {
+      document.getElementById('auth-section').style.display = 'block';
+    }
+  });
+
+  // Save token handler
+  const saveBtn = document.getElementById('save-token-btn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      const input = document.getElementById('auth-token-input');
+      const token = input.value.trim();
+      if (token) {
+        chrome.storage.local.set({ authToken: token }, () => {
+          document.getElementById('auth-section').style.display = 'none';
+          updateUI();
+        });
+      }
+    });
+  }
+
+  updateUI();
+});

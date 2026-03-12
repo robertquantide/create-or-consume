@@ -12,6 +12,15 @@ const ALARM_POLL_INTERVAL_MIN = 1;
 let lastDomain = null;
 let lastClassification = null;
 
+/**
+ * Get auth token from chrome.storage (#A — extension auth)
+ */
+async function getAuthToken() {
+  return new Promise((resolve) => {
+    chrome.storage.local.get('authToken', (result) => resolve(result.authToken || ''));
+  });
+}
+
 // Debounce tracking: track last-sent domain and timestamp (#21)
 let debounceLastDomain = null;
 let debounceLastTime = 0;
@@ -53,9 +62,11 @@ async function trackDomain(domain) {
   debounceLastTime = now;
 
   try {
+    const token = await getAuthToken();
+    const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
     const response = await fetch(`${API_BASE}/api/track`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeader },
       // Only send domain — no title, no full URL (#5)
       body: JSON.stringify({ domain }),
     });

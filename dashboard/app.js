@@ -31,9 +31,15 @@ function formatDate(dateStr) {
 
 // --- API calls ---
 
+// Auth token injected at serve time by the engine (window.__COC_TOKEN__)
+function getAuthHeaders() {
+  const token = window.__COC_TOKEN__ || '';
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
+
 async function fetchJSON(url) {
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: getAuthHeaders() });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.json();
   } catch (err) {
@@ -46,7 +52,7 @@ async function postJSON(url, body) {
   try {
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
       body: JSON.stringify(body),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);

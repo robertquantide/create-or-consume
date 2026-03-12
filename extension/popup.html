@@ -59,6 +59,14 @@
     <p class="error-hint">Start the engine on localhost:9876</p>
   </div>
 
+  <!-- Auth token setup section — shown when no token is stored -->
+  <div id="auth-section" style="display: none; padding: 16px;">
+    <p style="margin: 0 0 8px; font-size: 13px; color: #ccc;">Paste your auth token to connect:</p>
+    <input type="text" id="auth-token-input" placeholder="Auth token from engine startup..." style="width: 100%; box-sizing: border-box; padding: 6px 8px; font-size: 12px; background: #1a1a1a; border: 1px solid #444; color: #eee; border-radius: 4px; margin-bottom: 8px;" />
+    <button id="save-token-btn" style="width: 100%; padding: 6px; background: #10B981; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">Save Token</button>
+    <p style="margin: 8px 0 0; font-size: 11px; color: #666;">Find the token in engine startup logs or ~/.config/create-or-consume/auth.token</p>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>
