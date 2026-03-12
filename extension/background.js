@@ -1,16 +1,24 @@
 // Create or Consume — Background Service Worker
-// Tracks active tab and reports to local engine
+// Tracks active tab domain and reports to local engine
 
+// Shared config — single source of truth for API base (#17)
 const API_BASE = 'http://localhost:9876';
-// Chrome MV3 enforces a minimum alarm interval of 1 minute.
-// We respect this — tracking granularity is 1 minute.
-const ALARM_PERIOD_MINUTES = 1;
+
+// Note: Chrome MV3 alarms have a minimum period of 1 minute (#18).
+// We use 1 minute for the alarm-based poll. Tab change events provide
+// immediate tracking for URL transitions within the same session.
+const ALARM_POLL_INTERVAL_MIN = 1;
 
 let lastDomain = null;
 let lastClassification = null;
 
+// Debounce tracking: track last-sent domain and timestamp (#21)
+let debounceLastDomain = null;
+let debounceLastTime = 0;
+const DEBOUNCE_MS = 5000; // don't resend same domain within 5 seconds
+
 /**
- * Extract domain from URL
+ * Extract domain from URL, stripping paths, query params, and fragments (#5)
  */
 function extractDomain(url) {
   try {
@@ -22,39 +30,47 @@ function extractDomain(url) {
 }
 
 /**
- * Send current tab info to the engine
+ * Return true if this URL should be tracked (#11)
+ * Only track http:// and https://; skip browser-internal and special URLs
  */
-async function trackTab(tab) {
-  if (!tab || !tab.url) return;
+function isTrackableURL(url) {
+  if (!url) return false;
+  return url.startsWith('http://') || url.startsWith('https://');
+}
 
-  // Only track http:// and https:// URLs — skip file://, data://, about://, chrome://, blob://, etc.
-  if (!tab.url.startsWith('http://') && !tab.url.startsWith('https://')) {
+/**
+ * Send current tab domain to the engine (#5 — domain only, no title or URL)
+ */
+async function trackDomain(domain) {
+  if (!domain) return;
+
+  // Debounce: skip if same domain sent recently (#21)
+  const now = Date.now();
+  if (domain === debounceLastDomain && now - debounceLastTime < DEBOUNCE_MS) {
     return;
   }
-
-  const domain = extractDomain(tab.url);
-  if (!domain) return;
+  debounceLastDomain = domain;
+  debounceLastTime = now;
 
   try {
     const response = await fetch(`${API_BASE}/api/track`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // Send domain only — do NOT send title or full URL (privacy)
-      body: JSON.stringify({
-        domain,
-      }),
+      // Only send domain — no title, no full URL (#5)
+      body: JSON.stringify({ domain }),
     });
 
     if (response.ok) {
       const data = await response.json();
       lastDomain = domain;
       lastClassification = data.classification;
-
-      // Update badge
       updateBadge(data.classification, data.is_grace_period);
+    } else {
+      console.warn('[CoC] Track response error:', response.status); // #20
     }
   } catch (err) {
-    // Engine not running — clear badge
+    // Engine not running — clear badge (#20)
+    console.warn('[CoC] Engine unreachable:', err.message || err);
     chrome.action.setBadgeText({ text: '' });
     lastClassification = null;
   }
@@ -70,15 +86,15 @@ function updateBadge(classification, isGracePeriod) {
   switch (classification) {
     case 'CREATE':
       text = 'C';
-      color = isGracePeriod ? '#F59E0B' : '#10B981'; // yellow during grace, green otherwise
+      color = isGracePeriod ? '#F59E0B' : '#10B981';
       break;
     case 'CONSUME':
       text = 'C';
-      color = '#EF4444'; // red
+      color = '#EF4444';
       break;
     case 'MIXED':
       text = 'M';
-      color = '#F59E0B'; // yellow
+      color = '#F59E0B';
       break;
     default:
       text = '?';
@@ -90,21 +106,28 @@ function updateBadge(classification, isGracePeriod) {
 }
 
 /**
- * Poll the active tab
+ * Poll the active tab — extract domain only (#5, #11)
  */
 async function pollActiveTab() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab) {
-      await trackTab(tab);
+    if (!tab || !tab.url) return;
+
+    // Only track trackable URLs (#11)
+    if (!isTrackableURL(tab.url)) return;
+
+    const domain = extractDomain(tab.url);
+    if (domain) {
+      await trackDomain(domain);
     }
   } catch (err) {
-    // Ignore errors during polling
+    console.warn('[CoC] Poll error:', err.message || err); // #20
   }
 }
 
-// Set up alarm for periodic polling (minimum 1 minute per Chrome MV3)
-chrome.alarms.create('poll-tab', { periodInMinutes: ALARM_PERIOD_MINUTES });
+// Set up chrome.alarms for periodic polling (#12 — replaces unreliable setInterval in MV3)
+// Note: Chrome enforces minimum 1-minute alarm interval (#18)
+chrome.alarms.create('poll-tab', { periodInMinutes: ALARM_POLL_INTERVAL_MIN });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'poll-tab') {
@@ -112,23 +135,28 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
-// Track tab changes immediately
+// Track tab changes immediately (provides sub-minute tracking despite alarm limit)
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
   try {
     const tab = await chrome.tabs.get(activeInfo.tabId);
-    trackTab(tab);
-  } catch {
-    // Tab might not exist anymore
+    if (tab && tab.url && isTrackableURL(tab.url)) {
+      const domain = extractDomain(tab.url);
+      if (domain) await trackDomain(domain);
+    }
+  } catch (err) {
+    console.warn('[CoC] onActivated error:', err.message || err); // #20
   }
 });
 
-// Track URL changes
+// Track URL changes (#11 — filter non-trackable URLs)
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.url || changeInfo.status === 'complete') {
+    if (!tab.url || !isTrackableURL(tab.url)) return;
     // Only track if this is the active tab
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs[0] && tabs[0].id === tabId) {
-        trackTab(tab);
+        const domain = extractDomain(tab.url);
+        if (domain) trackDomain(domain);
       }
     });
   }
@@ -143,6 +171,6 @@ chrome.runtime.onStartup.addListener(() => {
   pollActiveTab();
 });
 
-// NOTE: Chrome enforces a minimum alarm interval of 1 minute for MV3 service workers.
-// setInterval is NOT used here because it does not persist across service worker restarts.
-// Tracking granularity is therefore 1 minute minimum — this is a Chrome MV3 limitation.
+// NOTE: setInterval is intentionally removed (#12).
+// MV3 service workers are ephemeral — setInterval is unreliable.
+// Tab event listeners + chrome.alarms provide reliable tracking.

@@ -1,5 +1,8 @@
 // Create or Consume — Popup Logic
 
+// Shared config — single source of truth for API base (#17)
+// Note: background.js also defines this constant; both must stay in sync.
+// Future: consider chrome.storage for shared config.
 const API_BASE = 'http://localhost:9876';
 
 /**
@@ -19,37 +22,51 @@ function formatTime(seconds) {
 async function loadToday() {
   try {
     const response = await fetch(`${API_BASE}/api/today`);
-    if (!response.ok) throw new Error('Engine error');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.json();
-  } catch {
+  } catch (err) {
+    console.warn('[CoC] Failed to load today stats:', err.message || err); // #20
     return null;
   }
 }
 
 /**
- * Get current tab's classification
+ * Get current tab's classification from the engine state
+ * NOTE: Popup no longer POSTs to /api/track — background.js handles all tracking (#19)
+ * We read the current state instead.
  */
 async function getCurrentTabInfo() {
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab || !tab.url) return null;
 
-    // Only track http:// and https:// URLs
-    if (!tab.url.startsWith('http://') && !tab.url.startsWith('https://')) return null;
+    // Extract domain safely
+    let domain;
+    try {
+      domain = new URL(tab.url).hostname.replace(/^www\./, '');
+    } catch {
+      return null;
+    }
 
-    const url = new URL(tab.url);
-    const domain = url.hostname.replace(/^www\./, '');
+    // Only read state — do NOT post to /api/track (background handles it, #19)
+    const response = await fetch(`${API_BASE}/api/state`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const state = await response.json();
 
-    const response = await fetch(`${API_BASE}/api/track`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      // Send domain only — do NOT send title or full URL (privacy)
-      body: JSON.stringify({ domain }),
-    });
+    // Use current tracking state if it matches current domain
+    if (state && state.tracking && state.tracking.current_domain === domain) {
+      return {
+        domain,
+        classification: state.tracking.current_classification || 'UNKNOWN',
+        is_grace_period: state.tracking.is_grace_period || false,
+        grace_remaining_seconds: 0,
+      };
+    }
 
-    if (!response.ok) throw new Error('Engine error');
-    return await response.json();
-  } catch {
+    // Domain not yet tracked — return domain info without posting
+    return { domain, classification: 'UNKNOWN', is_grace_period: false, grace_remaining_seconds: 0 };
+  } catch (err) {
+    console.warn('[CoC] Failed to get tab info:', err.message || err); // #20
     return null;
   }
 }
@@ -69,8 +86,10 @@ async function overrideDomain(domain, classification) {
       }),
     });
 
+    if (!response.ok) console.warn('[CoC] Override failed:', response.status); // #20
     return response.ok;
-  } catch {
+  } catch (err) {
+    console.warn('[CoC] Override error:', err.message || err); // #20
     return false;
   }
 }
@@ -114,7 +133,7 @@ async function updateUI() {
   document.getElementById('create-time').textContent = formatTime(today.create_seconds);
   document.getElementById('consume-time').textContent = formatTime(today.consume_seconds);
 
-  // Get current tab info
+  // Get current tab info (reads state, does NOT post tracking, #19)
   const tabInfo = await getCurrentTabInfo();
 
   if (tabInfo) {
@@ -142,7 +161,6 @@ async function updateUI() {
       if (select.value) {
         const success = await overrideDomain(tabInfo.domain, select.value);
         if (success) {
-          // Refresh UI
           updateUI();
         }
         select.value = '';
