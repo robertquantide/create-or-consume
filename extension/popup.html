@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="popup.css">
+  <title>Create or Consume</title>
+</head>
+<body>
+  <div class="popup">
+    <header class="header">
+      <h1>CREATE <span class="dim">or</span> CONSUME</h1>
+    </header>
+
+    <section class="today">
+      <div class="percentage" id="percentage">--%</div>
+      <div class="label">CREATE today</div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="time-row">
+        <span class="time create" id="create-time">0h 0m</span>
+        <span class="time consume" id="consume-time">0h 0m</span>
+      </div>
+      <div class="time-row">
+        <span class="time-label">CREATE</span>
+        <span class="time-label">CONSUME</span>
+      </div>
+    </section>
+
+    <section class="current" id="current-section">
+      <div class="current-header">
+        <span class="current-label">Current:</span>
+        <span class="current-domain" id="current-domain">--</span>
+      </div>
+      <div class="current-status">
+        <span class="dot" id="status-dot"></span>
+        <span id="status-text">--</span>
+        <span class="grace-badge" id="grace-badge" style="display: none;">GRACE</span>
+      </div>
+    </section>
+
+    <section class="actions">
+      <select id="override-select" class="override-select">
+        <option value="">Override classification...</option>
+        <option value="CREATE">Mark as CREATE</option>
+        <option value="CONSUME">Mark as CONSUME</option>
+        <option value="MIXED">Mark as MIXED</option>
+      </select>
+    </section>
+
+    <footer class="footer">
+      <a href="http://localhost:9876" target="_blank" class="dashboard-link">Open Dashboard</a>
+    </footer>
+  </div>
+
+  <div class="error" id="error" style="display: none;">
+    <p>Engine not running</p>
+    <p class="error-hint">Start the engine on localhost:9876</p>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

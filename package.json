@@ -1,0 +1,26 @@
+{
+  "name": "create-or-consume",
+  "version": "0.1.0",
+  "private": true,
+  "description": "The first screen time tracker that measures what you BUILD, not what you scroll.",
+  "scripts": {
+    "dev": "cd engine && bun run dev",
+    "start": "cd engine && bun run start",
+    "build": "cd engine && bun run build",
+    "typecheck": "cd engine && bun run typecheck"
+  },
+  "keywords": [
+    "screen-time",
+    "productivity",
+    "time-tracking",
+    "create",
+    "consume",
+    "self-hosted"
+  ],
+  "author": "Memo G",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mguleryuz/create-or-consume"
+  }
+}

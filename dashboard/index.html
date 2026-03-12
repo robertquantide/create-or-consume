@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create or Consume</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <header>
+      <h1>CREATE <span class="dim">or</span> CONSUME</h1>
+      <span class="nav-date" id="nav-date"></span>
+    </header>
+
+    <!-- Hero Stat -->
+    <div class="card hero">
+      <div class="hero-percentage" id="hero-percentage">--%</div>
+      <div class="hero-label">CREATE today</div>
+      <div class="main-progress">
+        <div class="main-progress-fill" id="main-progress" style="width: 0%"></div>
+      </div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-value create" id="hero-create-time">0m</div>
+          <div class="hero-stat-label">Create</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value consume" id="hero-consume-time">0m</div>
+          <div class="hero-stat-label">Consume</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value mixed" id="hero-mixed-time">0m</div>
+          <div class="hero-stat-label">Mixed</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="card timeline">
+      <div class="card-title">Today's Timeline</div>
+      <div class="timeline-bar" id="timeline-bar"></div>
+      <div class="timeline-labels">
+        <span id="timeline-start">--:--</span>
+        <span id="timeline-end">--:--</span>
+      </div>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-dot create"></div>
+          <span>Create</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot consume"></div>
+          <span>Consume</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot mixed"></div>
+          <span>Mixed / Grace</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <!-- App Breakdown -->
+      <div class="card">
+        <div class="card-title">App Breakdown</div>
+        <ul class="app-list" id="app-list">
+          <li class="empty">No apps tracked today</li>
+        </ul>
+      </div>
+
+      <!-- Weekly Trend -->
+      <div class="card">
+        <div class="card-title">Weekly Trend</div>
+        <div class="weekly-chart" id="weekly-chart">
+          <div class="empty" style="width:100%">No weekly data yet</div>
+        </div>
+        <div class="legend" style="margin-top: 12px">
+          <div class="legend-item">
+            <div class="legend-dot create"></div>
+            <span>Create</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot consume"></div>
+            <span>Consume</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="card">
+      <div class="card-title">Settings</div>
+
+      <div class="settings-section">
+        <div class="settings-title">Override Classification</div>
+        <form class="settings-form" id="override-form">
+          <select class="settings-select" id="override-type">
+            <option value="app">App</option>
+            <option value="domain">Domain</option>
+          </select>
+          <input
+            type="text"
+            class="settings-input"
+            id="override-name"
+            placeholder="App name or domain..."
+          >
+          <select class="settings-select" id="override-class">
+            <option value="CREATE">CREATE</option>
+            <option value="CONSUME">CONSUME</option>
+            <option value="MIXED">MIXED</option>
+          </select>
+          <button type="submit" class="settings-btn">Save</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer style="text-align: center; padding: 24px 0; color: #444; font-size: 12px;">
+      Create or Consume — Track what you build, not what you scroll.
+      <br>
+      <a href="https://github.com/mguleryuz/create-or-consume" target="_blank" style="color: #555; text-decoration: none;">GitHub</a>
+    </footer>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

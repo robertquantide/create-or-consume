@@ -1,0 +1,241 @@
+/* Create or Consume — Popup Styles */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  width: 280px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #121212;
+  color: #e0e0e0;
+}
+
+.popup {
+  padding: 16px;
+}
+
+/* Header */
+.header {
+  margin-bottom: 16px;
+}
+
+.header h1 {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+.header .dim {
+  color: #666;
+  font-weight: 400;
+}
+
+/* Today Section */
+.today {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.percentage {
+  font-size: 36px;
+  font-weight: 700;
+  color: #10B981;
+  line-height: 1;
+  margin-bottom: 2px;
+}
+
+.percentage.low {
+  color: #EF4444;
+}
+
+.percentage.mid {
+  color: #F59E0B;
+}
+
+.label {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #EF4444;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #10B981;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  width: 0%;
+}
+
+.time-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.time {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.time.create {
+  color: #10B981;
+}
+
+.time.consume {
+  color: #EF4444;
+}
+
+.time-label {
+  font-size: 10px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Current Site */
+.current {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #2a2a2a;
+}
+
+.current-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.current-label {
+  font-size: 11px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.current-domain {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.current-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #666;
+}
+
+.dot.create {
+  background: #10B981;
+}
+
+.dot.consume {
+  background: #EF4444;
+}
+
+.dot.mixed {
+  background: #F59E0B;
+}
+
+#status-text {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.grace-badge {
+  font-size: 9px;
+  padding: 2px 5px;
+  background: #F59E0B33;
+  color: #F59E0B;
+  border-radius: 3px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* Actions */
+.actions {
+  margin-bottom: 12px;
+}
+
+.override-select {
+  width: 100%;
+  padding: 8px 10px;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 6px;
+  color: #e0e0e0;
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.override-select:hover {
+  border-color: #555;
+}
+
+.override-select:focus {
+  border-color: #10B981;
+}
+
+/* Footer */
+.footer {
+  text-align: center;
+}
+
+.dashboard-link {
+  font-size: 11px;
+  color: #666;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.dashboard-link:hover {
+  color: #10B981;
+}
+
+/* Error state */
+.error {
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.error p {
+  font-size: 14px;
+  font-weight: 600;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.error-hint {
+  font-size: 11px;
+  color: #444;
+  font-weight: 400 !important;
+}
