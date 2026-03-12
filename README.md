@@ -30,7 +30,7 @@ Create or Consume tracks this automatically. No manual timers. No categories to 
 
 ```bash
 # Clone the repo
-git clone https://github.com/mguleryuz/create-or-consume.git
+git clone https://github.com/robertquantide/create-or-consume.git
 cd create-or-consume
 
 # Install dependencies
