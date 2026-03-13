@@ -40,12 +40,27 @@ function getAuthHeaders() {
 async function fetchJSON(url) {
   try {
     const res = await fetch(url, { headers: getAuthHeaders() });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      if (res.status === 401) {
+        showAuthError();
+      }
+      throw new Error(`HTTP ${res.status}`);
+    }
     return await res.json();
   } catch (err) {
     console.error(`Fetch error: ${url}`, err);
     return null;
   }
+}
+
+let _authErrorShown = false;
+function showAuthError() {
+  if (_authErrorShown) return;
+  _authErrorShown = true;
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:12px;background:#ff4444;color:#fff;text-align:center;font-size:14px;z-index:9999;';
+  banner.textContent = '⚠️ Auth error — token injection failed. Reload or check engine logs.';
+  document.body.prepend(banner);
 }
 
 async function postJSON(url, body) {

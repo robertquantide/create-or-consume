@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import type {
   TodayResponse,
@@ -340,14 +341,22 @@ export function createAPI(): express.Application {
   });
 
   // Serve dashboard index with token injected so dashboard JS can authenticate (#A)
+  // Uses a per-request CSP nonce to allow the inline script while keeping script-src strict.
   app.get('/', (req, res) => {
     try {
       const html = fs.readFileSync(path.join(dashboardPath, 'index.html'), 'utf-8');
       const authToken = getAuthToken();
-      // Inject token as a global variable — dashboard reads window.__COC_TOKEN__
+      // Generate a cryptographically random nonce for this request
+      const nonce = crypto.randomBytes(16).toString('base64');
+      // Set CSP header with nonce — allows only this specific inline script
+      res.setHeader(
+        'Content-Security-Policy',
+        `default-src 'self'; script-src 'self' 'nonce-${nonce}'; style-src 'self' 'unsafe-inline'; connect-src http://localhost:9876 http://127.0.0.1:9876`
+      );
+      // Inject token as a global variable with the nonce — dashboard reads window.__COC_TOKEN__
       const injected = html.replace(
         '</head>',
-        `<script>window.__COC_TOKEN__ = ${JSON.stringify(authToken)};</script>\n</head>`
+        `<script nonce="${nonce}">window.__COC_TOKEN__ = ${JSON.stringify(authToken)};</script>\n</head>`
       );
       res.type('html').send(injected);
     } catch (err) {
@@ -357,7 +366,8 @@ export function createAPI(): express.Application {
   });
 
   // Serve static assets (app.js, style.css, etc.) — no token needed for these
-  app.use(express.static(dashboardPath));
+  // index: false prevents express.static from intercepting / and bypassing token injection
+  app.use(express.static(dashboardPath, { index: false }));
 
   // Global error handler — no stack trace leaks (#15)
   app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
